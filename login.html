@@ -8,6 +8,7 @@
 </head>
 <body>
   <form id="login-form" method="post" action="">
+  	{% if no_https %}<p class="error" style="font-weight: bold;">{{ no_https }}</p>{% endif %}
     {% if login_error %}<p class="error">{{ login_error }}</p>{% endif %}
     <div>
       <label for="password">Password:</label>

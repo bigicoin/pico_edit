@@ -20,6 +20,7 @@
     <a href="#" class="pushpullbutton btn icon-download2 marg-r5" title="Git Push/Pull"></a>
     <a href="#" class="commitbutton btn icon-upload2 marg-r5" title="Git Commit"></a>
     <a href="#" class="clearcachebutton btn icon-loop2 marg-r5" title="Clear Cache"></a>
+    <a href="#" class="releasebutton btn icon-upload2 marg-r5" title="Release"></a>
     <a href="{{ pico_edit_url }}/logout" class="logout btn icon-switch" title="Logout"></a>
   </div>
   <div id="sidebar">
@@ -32,8 +33,32 @@
       {% endif %}
     </ul>
     <ul class="nav">
+    {% set seenPaths = {} %}
     {% for page in pages %}
-      <li><a href="#" data-url="{{ page.id }}" class="post"><span class="icon-file-text2 marg-r5" aria-hidden="true"></span>/{{ page.id }}</a>
+      {% set pathParts = page.id|split('/')|slice(0, -1) %}
+      {% set filePath = pathParts|join('/') %}
+      {% set hasNested = pathParts|length > 0 %}
+      {% if hasNested %}
+        {% set fileHidden = true %}
+      {% else %}
+        {% set fileHidden = false %}
+      {% endif %}
+      {% for i in 0..10 if hasNested %} {# support up to 10 nested folders #}
+        {% set currentPath = pathParts|join('/') %}
+        {% set onePathUp = pathParts|slice(0, -1)|join('/') %}
+        {% if onePathUp %}
+          {% set folderhidden = true %}
+        {% else %}
+          {% set folderhidden = false %}
+        {% endif %}
+        {% if not seenPaths[currentPath] %}
+          <li class="{{ folderhidden ? 'defaultOff' : '' }} {{ onePathUp|raw }}"><a href="#" data-open-folder="{{ currentPath|raw }}" class="isFolder"><span class="icon-file-empty marg-r5" aria-hidden="true"></span>/{{ currentPath|raw }}</a></li>
+          {% set seenPaths = seenPaths|merge({ (currentPath) : 1}) %}
+        {% endif %}
+        {% set pathParts = pathParts|slice(0, -1) %}
+        {% set hasNested = pathParts|length > 0 %}
+      {% endfor %}
+      <li class="{{ fileHidden ? 'defaultOff' : '' }} {{ filePath|raw }}"><a href="#" data-url="{{ page.id }}" class="post"><span class="icon-file-text2 marg-r5" aria-hidden="true"></span>/{{ page.id }}</a>
       <a href="{{ page.url }}" target="_blank" class="view" title="View"><span class="icon icon-eye" aria-hidden="true"></span></a>
       <a href="#" data-url="{{ page.id }}" class="delete" title="Delete"><span class="icon icon-bin" aria-hidden="true"></span></a></li>
     {% endfor %}
@@ -159,6 +184,7 @@
       });
 
       $('.controls').on('click', '.savebutton', function(e) {
+        e.preventDefault();
         $('#saving').text('Saving...').addClass('active');
         $.post('{{ pico_edit_url }}/save', { file: $('#epiceditor').data('currentFile'), content: editor.exportFile() }, function(data){
           $('#saving').text('Saved');
@@ -169,27 +195,42 @@
           }, 1000);
         });
       });
-      $('.controls').on('click', '.clearcachebutton', function(e) {
-         $('#saving').text('Clearing...').addClass('active');
-         $.post('{{ pico_edit_url }}/clearcache', {}, function(data){
-           $('#saving').text('Cache cleared');
-           setTimeout(function(){
-                   $('#saving').removeClass('active');
-           }, 1000);
-         });
-       });
       $('.controls').on('click', '.commitbutton', function(e) {
+        e.preventDefault();
         open_popup();
         $('.popupcontent').load('{{ pico_edit_url }}/commit');
       });
       $('.controls').on('click', '.pushpullbutton', function(e) {
+        e.preventDefault();
         open_popup();
         $('.popupcontent').load('{{ pico_edit_url }}/pushpull');
       });
+      $('.controls').on('click', '.clearcachebutton', function(e) {
+        e.preventDefault();
+        $('#saving').text('Clearing...').addClass('active');
+        $.post('{{ pico_edit_url }}/clearcache', {}, function(data){
+          $('#saving').text('Cache cleared');
+          setTimeout(function(){
+                  $('#saving').removeClass('active');
+          }, 1000);
+        });
+      });
+      $('.controls').on('click', '.releasebutton', function(e) {
+        e.preventDefault();
+        $('#saving').text('Releasing...').addClass('active');
+        $.post('{{ pico_edit_url }}/release', {}, function(data){
+          $('#saving').text('Released');
+          setTimeout(function(){
+                  $('#saving').removeClass('active');
+          }, 1000);
+        });
+      });
       $('#popup').on('click', '.closegadget', function(e) {
+        e.preventDefault();
         close_popup();
       });
       $('#cover').on('click', function(e) {
+        e.preventDefault();
         close_popup();
       });
 
@@ -199,6 +240,44 @@
         $('body,#main,#epiceditor').height($(window).height());
         editor.reflow();
       });
+
+      // folder tree
+      $('.isFolder').click(function(e) {
+        e.preventDefault();
+        var folderToOpen = $(e.target).data('open-folder');
+        $('.' + folderToOpen.replace(/\//g, "\\\/")).toggleClass('defaultOff');
+      });
+
+      // sidebar resize
+      var onSidebarResize = function(newWidth) {
+        $('.controls').css('width', newWidth+'px');
+        $('#epiceditor').css('margin-left', newWidth+'px');
+      };
+      // firefox: DOMAttrModified listener
+      $('#sidebar')[0].addEventListener('DOMAttrModified', function(e) {
+        if (e.attrName === 'style') {
+          var cssPair = e.newValue.split(': ');
+          if (cssPair[0] === 'width') {
+            onSidebarResize( parseInt(cssPair[1].replace('px;')) );
+          }
+        }
+      });
+      // chrome: need to use webkit specific method: observers
+      var observer = new WebKitMutationObserver(function (mutations) {
+        mutations.forEach(attrModified);
+      });
+      observer.observe($('#sidebar')[0], { attributes: true, subtree: false });
+      function attrModified(mutation) {
+        var name = mutation.attributeName,
+          newValue = mutation.target.getAttribute(name),
+          oldValue = mutation.oldValue; // should be none for our use case
+        if (name === 'style') {
+          var cssPair = newValue.split(': ');
+          if (cssPair[0] === 'width') {
+            onSidebarResize( parseInt(cssPair[1].replace('px;')) );
+          }
+        }
+      }
 
     });
 
@@ -226,6 +305,15 @@
       if(data.remotes.length) {
         $('.pushpullbutton').show();
       }
+    });
+    $.getJSON("{{ pico_edit_url }}/canrelease", function(data) {
+      if(data.have_release) {
+        $('.releasebutton').show();
+      }
+    });
+
+    $(function() {
+      history.pushState(null, 'Pico Edit', '/pico_edit');
     });
     </script>
   </div>

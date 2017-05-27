@@ -35,6 +35,9 @@ final class Pico_Edit extends AbstractPicoPlugin {
       $twig_editor = new Twig_Environment( $loader, $twig_vars );
       // $twig_vars['autoescape'] = false;
       $twig_editor->addFilter('var_dump', new Twig_Filter_Function('var_dump'));
+      if (empty($_SERVER['HTTPS'])) {
+      	$twig_vars['no_https'] = 'Warning: It looks like you may not be on HTTPS. Your password will not be securely submitted!';
+      }
       if( !$this->password ) {
         $twig_vars['login_error'] = 'No password set for the backend.';
         echo $twig_editor->render( 'login.html', $twig_vars ); // Render login.html
@@ -138,6 +141,8 @@ final class Pico_Edit extends AbstractPicoPlugin {
     if( $url == 'pico_edit/git' ) $this->do_git();
     if( $url == 'pico_edit/pushpull' ) $this->do_pushpull();
     if( $url == 'pico_edit/clearcache' ) $this->do_clearcache();
+    if( $url == 'pico_edit/canrelease' ) $this->do_canrelease();
+    if( $url == 'pico_edit/release' ) $this->do_release();
   }
 
   /**
@@ -523,14 +528,41 @@ final class Pico_Edit extends AbstractPicoPlugin {
     die(json_encode($output));
   }
 
-   private function do_clearcache()
-   {
-     if(!isset($_SESSION['backend_logged_in']) || !$_SESSION['backend_logged_in']) die(json_encode(array('error' => 'Error: Unathorized')));
-     $path = $this->getConfig( 'content_dir' ).'/../cache/*';
-     $ret = `rm -rf $path`;
-     // done
-     die($ret);
-   }
+  private function do_clearcache()
+  {
+    if(!isset($_SESSION['backend_logged_in']) || !$_SESSION['backend_logged_in']) die(json_encode(array('error' => 'Error: Unathorized')));
+    $path = $this->getConfig( 'content_dir' ).'/../cache/*';
+    $ret = `rm -rf $path`;
+    // done
+    die($ret);
+  }
+
+  private function do_canrelease()
+  {
+    global $release_dir;
+    if(!isset($_SESSION['backend_logged_in']) || !$_SESSION['backend_logged_in']) die(json_encode(array('error' => 'Error: Unathorized')));
+    $output = array(
+      'have_release' => 0
+    );
+    if (!empty($release_dir)) {
+      $output['have_release'] = 1;
+    }
+    // done
+    die(json_encode($output));
+  }
+
+  private function do_release()
+  {
+    global $release_dir;
+    if(!isset($_SESSION['backend_logged_in']) || !$_SESSION['backend_logged_in']) die(json_encode(array('error' => 'Error: Unathorized')));
+    if (!empty($release_dir)) {
+      $stagepath = $this->getConfig( 'content_dir' ).'/../';
+      $releasepath = $release_dir;
+      $ret = `rsync -a --exclude '.git' $stagepath $releasepath`;
+    }
+    // done
+    die($ret);
+  }
 
   private function slugify( $text ) {
     // replace non letter or digits by -

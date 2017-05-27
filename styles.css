@@ -175,7 +175,8 @@ a:hover, a:active {
   top: 0;
   left: 0;
   z-index: 90;
-  width: 230px;
+  width: 250px;
+  box-sizing: border-box;
   font-family: 'icomoon';
   line-height: 35px;
   height: 35px;
@@ -190,7 +191,7 @@ a:hover, a:active {
   float: left; 
   margin-top: 5px;
 }
-.controls .new, .commitbutton, .savebutton, .pushpullbutton, .clearcachebutton { 
+.controls .new, .commitbutton, .savebutton, .pushpullbutton, .clearcachebutton, .releasebutton { 
   float: right; 
   margin-top: 5px;
 }
@@ -201,6 +202,7 @@ a:hover, a:active {
   bottom: 0;
   z-index: 1;
   width: 250px;
+  resize: horizontal;
   height: auto;
   overflow: auto;
   border-right: 1px solid #DCE0E3;
@@ -262,6 +264,9 @@ a:hover, a:active {
 #sidebar li .delete { padding-right: 5px; }
 #sidebar li:hover .view,
 #sidebar li:hover .delete { opacity: 1; }
+
+#sidebar li.defaultOff { display: none; }
+#sidebar li a.isFolder { font-weight: bold; }
 
 #main {
   position: absolute;
@@ -401,6 +406,9 @@ a:hover, a:active {
   display: none;
 }
 .commitbutton {
+  display: none;
+}
+.releasebutton {
   display: none;
 }
 
