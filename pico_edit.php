@@ -143,6 +143,8 @@ final class Pico_Edit extends AbstractPicoPlugin {
     if( $url == 'pico_edit/clearcache' ) $this->do_clearcache();
     if( $url == 'pico_edit/canrelease' ) $this->do_canrelease();
     if( $url == 'pico_edit/release' ) $this->do_release();
+    if( $url == 'pico_edit/downloadprepare' ) $this->do_downloadprepare();
+    if( $url == 'pico_edit/downloadstart' ) $this->do_downloadstart();
   }
 
   /**
@@ -562,6 +564,42 @@ final class Pico_Edit extends AbstractPicoPlugin {
     }
     // done
     die($ret);
+  }
+
+  private function do_downloadprepare()
+  {
+    if(!isset($_SESSION['backend_logged_in']) || !$_SESSION['backend_logged_in']) die(json_encode(array('error' => 'Error: Unathorized')));
+    $zip = new ZipArchive();
+    $contentPath = realpath($this->getConfig( 'content_dir' ));
+    $zipOpen = $zip->open('/tmp/contentbackup.zip', ZipArchive::OVERWRITE);
+    if ($zipOpen !== TRUE) {
+      $output = array('status' => 'failure');
+    } else {
+      $options = array('add_path' => 'content/', 'remove_path' => $contentPath);
+      $zip->addGlob($contentPath.'/*'.$this->getConfig( 'content_ext' ), GLOB_BRACE, $options);
+      $zip->addGlob($contentPath.'/*/*'.$this->getConfig( 'content_ext' ), GLOB_BRACE, $options);
+      $zip->close();
+      $output = array('status' => 'success');
+    }
+    // done
+    die(json_encode($output));
+  }
+
+  private function do_downloadstart()
+  {
+    if(!isset($_SESSION['backend_logged_in']) || !$_SESSION['backend_logged_in']) die(json_encode(array('error' => 'Error: Unathorized')));
+    $file = '/tmp/contentbackup.zip';
+    if (file_exists($file)) {
+      header('Content-Description: File Transfer');
+      header('Content-Type: application/octet-stream');
+      header('Content-Disposition: attachment; filename="'.basename($file).'"');
+      header('Expires: 0');
+      header('Cache-Control: must-revalidate');
+      header('Pragma: public');
+      header('Content-Length: ' . filesize($file));
+      readfile($file);
+    }
+    die();
   }
 
   private function slugify( $text ) {

@@ -19,6 +19,7 @@
     <a href="#" class="new btn icon-plus marg-r5" title="New"></a>
     <a href="#" class="pushpullbutton btn icon-download2 marg-r5" title="Git Push/Pull"></a>
     <a href="#" class="commitbutton btn icon-upload2 marg-r5" title="Git Commit"></a>
+    <a href="#" class="downloadbutton btn icon-download2 marg-r5" title="Download Backup"></a>
     <a href="#" class="clearcachebutton btn icon-loop2 marg-r5" title="Clear Cache"></a>
     <a href="#" class="releasebutton btn icon-upload2 marg-r5" title="Release"></a>
     <a href="{{ pico_edit_url }}/logout" class="logout btn icon-switch" title="Logout"></a>
@@ -215,6 +216,28 @@
           }, 1000);
         });
       });
+      $('.controls').on('click', '.downloadbutton', function(e) {
+        e.preventDefault();
+        $('#saving').text('Zipping all content files for download...').addClass('active');
+        $.getJSON('{{ pico_edit_url }}/downloadprepare', function(data){
+          if (data && data.status && data.status == 'success') {
+            $('#saving').text('Download begins!');
+            setTimeout(function(){
+              $('#saving').removeClass('active');
+            }, 1000);
+            var a = document.createElement("a");
+            a.href = '{{ pico_edit_url }}/downloadstart';
+            a.download = 'contentbackup.zip';
+            document.body.appendChild(a);
+            a.click();
+          } else {
+            $('#saving').text('Could not prepare zip file!');
+            setTimeout(function(){
+              $('#saving').removeClass('active');
+            }, 1000);
+          }
+        });
+      });
       $('.controls').on('click', '.releasebutton', function(e) {
         e.preventDefault();
         $('#saving').text('Releasing...').addClass('active');
@@ -298,6 +321,7 @@
       $(document).unbind('keyup.popup');
     }
 
+    /*
     $.getJSON("{{ pico_edit_url }}/git", function(data) {
       if(data.have_repo) {
         $('.commitbutton').show();
@@ -306,6 +330,7 @@
         $('.pushpullbutton').show();
       }
     });
+	*/
     $.getJSON("{{ pico_edit_url }}/canrelease", function(data) {
       if(data.have_release) {
         $('.releasebutton').show();

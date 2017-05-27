@@ -191,7 +191,7 @@ a:hover, a:active {
   float: left; 
   margin-top: 5px;
 }
-.controls .new, .commitbutton, .savebutton, .pushpullbutton, .clearcachebutton, .releasebutton { 
+.controls .new, .commitbutton, .savebutton, .pushpullbutton, .clearcachebutton, .releasebutton, .downloadbutton { 
   float: right; 
   margin-top: 5px;
 }
